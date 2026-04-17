@@ -10,8 +10,8 @@ import io
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "8679225471:AAE0JLV-u_ixJiRfsFaXuxywCoNrr5JYgMM")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "YOUR_CLAUDE_API_KEY")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -76,10 +76,9 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         if not text.strip():
-            await update.message.reply_text("❌ Не удалось извлечь текст из документа. Попробуй другой файл.")
+            await update.message.reply_text("❌ Не удалось извлечь текст из документа.")
             return
 
-        # Ограничиваем текст чтобы не превысить лимиты API
         if len(text) > 50000:
             text = text[:50000] + "\n\n[Документ обрезан для анализа]"
 
@@ -97,7 +96,6 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         response_text = message.content[0].text
 
-        # Telegram ограничивает сообщения 4096 символами
         if len(response_text) > 4000:
             chunks = [response_text[i:i+4000] for i in range(0, len(response_text), 4000)]
             for chunk in chunks:
@@ -112,7 +110,6 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
-
     await update.message.reply_text("⏳ Думаю над ответом...")
 
     try:
@@ -142,7 +139,7 @@ def main():
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     logger.info("Bot started...")
-    app.run_polling()
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
